@@ -1,0 +1,200 @@
+---
+title: "Heart Data"
+author: "Gözde Nur Özdemir"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# HEART DISEASE DATA SET
+
+You can find the data from [here](https://www.kaggle.com/datasets/fedesoriano/heart-failure-prediction)
+
+![](i.webp){width="440"}
+
+### Preperation
+
+```{r echo = T, results = 'hide',message=FALSE, warning=FALSE}
+# Please first download required library
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(rvest)
+library(stringr)
+library(corrplot)
+```
+
+### General Information About Data Set
+
+```{r}
+dt<-read.csv("C:/Users/gozde/Desktop/Heart Data/heart.csv")
+dt$HeartDisease<-ifelse(dt$HeartDisease==0,"No Heart Disease","Yes Heart Disease")
+dt$HeartDisease<-factor(dt$HeartDisease)
+dt$Sex<-factor(dt$Sex)
+dt$ExerciseAngina<-ifelse(dt$ExerciseAngina=="N","No","Yes")
+dt$ExerciseAngina<-factor(dt$ExerciseAngina)
+dt$RestingECG<-factor(dt$RestingECG)
+dt$ST_Slope<-factor(dt$ST_Slope)
+dt$ChestPainType<-factor(dt$ChestPainType)
+summary(dt)
+```
+
+```{r}
+plot1 <- ggplot(data = dt, aes(x = HeartDisease, y = Age)) +
+  geom_boxplot(col="blue") +
+  labs(x = "Heart Disease", y = "Age", title = "Heart Disease vs Age")
+
+plot1
+
+```
+
+As we can see from the plot 1, if median age are higher, people tend to have heart disease.
+
+```{r}
+plot2 <- ggplot(data = dt, aes(x = HeartDisease, y = Cholesterol)) +
+  geom_boxplot(col="brown") +
+  labs(x = "Heart Disease", y = "Cholesterol", title = "Heart Disease vs Cholesterol")
+plot2
+```
+
+If people have heart disease their cholesterol's IQR are longer and its median is smaller.
+
+### Logistic Regression
+
+#### Heart Disease and Cholesterol
+
+```{r}
+dt$HeartDisease<-ifelse(dt$HeartDisease=="Yes Heart Disease",1,0)
+dt$HeartDisease<-factor(dt$HeartDisease)
+logistic<-glm(data=dt,formula=HeartDisease~Cholesterol,family = binomial)
+summary(logistic)
+
+# log1<-1.15+(-0.0046)*cholesterol
+```
+
+As we can understand from log1 if cholesterol level increases 1 unit then heart disease's rate decreases as 0.0046.
+
+```{r}
+df_pred <- data.frame(Cholesterol = seq(min(dt$Cholesterol), max(dt$Cholesterol), length.out=100))
+df_pred$prob <- predict(logistic, newdata=df_pred, type="response")
+ggplot(dt, aes(x=Cholesterol, y=HeartDisease)) +
+  geom_point() +
+  geom_line(data=df_pred, aes(x=Cholesterol, y=prob), color="blue") +
+  ylab("Probability of Heart Disease") +
+  xlab("Cholesterol") +
+  ggtitle("Logistic Regression Plot")
+
+```
+
+Here is the graph.
+
+#### Heart Disease and Age
+
+```{r}
+logistic1<-glm(data=dt,formula=HeartDisease~Age,family = binomial)
+summary(logistic1)
+# log2<-(-3.21)+0.064*(age)
+```
+
+This is invalid since age can't be negative value but it's intercept is -3.21.
+
+```{r}
+df_pred <- data.frame(Age = seq(min(dt$Age), max(dt$Age), length.out=100))
+df_pred$prob <- predict(logistic1, newdata=df_pred, type="response")
+ggplot(dt, aes(x=Age, y=HeartDisease)) +
+  geom_point() +
+  geom_line(data=df_pred, aes(x=Age, y=prob), color="red") +
+  ylab("Probability of Heart Disease") +
+  xlab("Age") +
+  ggtitle("Logistic Regression Plot")
+```
+
+Here is the graph.
+
+#### Heart Disease and FastingBS
+
+```{r}
+logistic2<-glm(data=dt,formula=HeartDisease~FastingBS,family = binomial)
+summary(logistic2)
+# log3<-(-0.07959)+ 1.43120*FastingBS
+```
+
+So if fastingBS increase 1 unit than heart disease's rate also increases as 1.43120.
+
+#### Heart Disease and Sex
+
+```{r}
+dt$Sex<-relevel(dt$Sex,"M")
+logistic3<-glm(data=dt,formula=HeartDisease~Sex,family = binomial)
+summary(logistic3)
+# log3<-(0.5396)-(1.5904)*Female
+```
+
+Interpreting the coefficient, we can say that being female (SexF = 1) lowers the logarithm of the odds of heart disease by 1.5904 units compared to being male (SexF = 0).
+
+#### Heart Disease and Exercise Angina
+
+```{r}
+dt$ExerciseAngina<-relevel(dt$ExerciseAngina,"No")
+logistic4<-glm(data=dt,formula=HeartDisease~ExerciseAngina,family = binomial)
+summary(logistic4)
+# logit3 = -0.61462 + 2.36303 * ExerciseAnginaYes
+```
+
+Interpreting the coefficient, we can say that being female (ExerciseAngineYes= 1) increases the logarithm of the odds of heart disease by 2.36303 units compared to being ExerciseAngineNo.
+
+#### Heart Disease and Depression
+
+```{r}
+logistic5<-glm(data=dt,formula=HeartDisease~Oldpeak,family = binomial)
+summary(logistic5)
+# log4<-(-0.5689)+(1.00672)*(Depression)
+```
+
+When depression level increases 1 unit then heart disease's rate increases as 1.00672
+
+```{r}
+df_pred <- data.frame(Oldpeak = seq(min(dt$Oldpeak), max(dt$Oldpeak), length.out=100))
+df_pred$prob <- predict(logistic5, newdata=df_pred, type="response")
+ggplot(dt, aes(x=Oldpeak, y=HeartDisease)) +
+  geom_point() +
+  geom_line(data=df_pred, aes(x=Oldpeak, y=prob), color="purple") +
+  ylab("Probability of Heart Disease") +
+  xlab("Depression") +
+  ggtitle("Logistic Regression Plot")
+```
+
+Here is the graph.
+
+#### Heart Disease and Maximum Heart Rate
+
+```{r}
+logistic6<-glm(data=dt,formula=HeartDisease~MaxHR,family = binomial)
+summary(logistic6)
+# 5.3+(-0.037)*Maximum Heart Rate
+```
+
+Here is the graph below.
+
+```{r}
+df_pred <- data.frame(MaxHR = seq(min(dt$MaxHR), max(dt$MaxHR), length.out=100))
+df_pred$prob <- predict(logistic6, newdata=df_pred, type="response")
+ggplot(dt, aes(x=MaxHR, y=HeartDisease)) +
+  geom_point() +
+  geom_line(data=df_pred, aes(x=MaxHR, y=prob), color="purple") +
+  ylab("Probability of Heart Disease") +
+  xlab("Maximum Heart Rate") +
+  ggtitle("Logistic Regression Plot")
+```
+
+## Multiple Logistic Regression
+
+```{r}
+colnames(dt)
+general<-glm(data=dt,HeartDisease~Cholesterol+Age+FastingBS+Sex+ExerciseAngina+Oldpeak,family=binomial)
+summary(general)
+# general_logit<--2.94+(-0.004)*Cholesterol+(0.03)*Age+(1.18)*FastingBS+(1.2)*Sex+(1.9)*Exercise+(0.6)*Depression
+```
+
+It can be interpreted like other simple logistic regression.
