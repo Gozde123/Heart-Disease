@@ -1,8 +1,5 @@
 # heart data app
 
-
-getwd()
-setwd("C:/Users/gozde/Desktop/Heart Data/heart")
 library(shiny)
 library(ggplot2)
 library(shinythemes)
